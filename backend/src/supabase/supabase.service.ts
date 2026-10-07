@@ -47,14 +47,14 @@ export class SupabaseService {
 
   // ---------------------------------------------------------------- Storage
 
-  async uploadFile(bucket: string, path: string, fileBuffer: Buffer, contentType: string) {
+  async uploadFile(bucket: string, path: string, fileBuffer: Buffer, contentType: string): Promise<any> {
     return this.supabaseClient.storage.from(bucket).upload(path, fileBuffer, {
       contentType,
       upsert: true,
     });
   }
 
-  async getSignedUrl(bucket: string, path: string, expiresIn = 3600) {
+  async getSignedUrl(bucket: string, path: string, expiresIn = 3600): Promise<any> {
     return this.supabaseClient.storage.from(bucket).createSignedUrl(path, expiresIn);
   }
 }

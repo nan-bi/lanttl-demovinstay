@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "8080:3000"
+    restart: unless-stopped
+    environment:
+      # Nginx or Traefik might be better in the future, but direct port 80 is ok for simple deploy
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - REDIS_HOST=redis
+      - AI_ENGINE_URL=http://ai_agent:8000
+    depends_on:
+      - redis
+      - ai_agent
+
+  ai_agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

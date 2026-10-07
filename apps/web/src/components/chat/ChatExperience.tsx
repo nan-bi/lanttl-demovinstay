@@ -139,59 +139,64 @@ export function ChatExperience({ below }: { below: ReactNode }) {
   const activeGreeting = VINNY_GREETINGS[greetingIdx];
   const greeting = first ? `Chào ${first}! ${activeGreeting}` : activeGreeting;
 
-  const onSend = (text: string) => {
+  const onSend = async (text: string) => {
     if (busy.current || locked) return;
     busy.current = true;
     try {
       chatAppend({ role: "user", text });
       if (role === null) countGuestMessage();
 
-      const result = interpret(text, chat.criteria, chat.searched, statusOf);
-      const isSearch = result.kind === "search";
-      const budget = isSearch ? result.criteria.budget : undefined;
-
-      if (isSearch && budget) {
-        matchmakerApi
-          .recommend({
-            maxAllInBudget: budget,
-            preferredLayout: result.criteria.layouts?.[0],
-            occupants: result.criteria.household?.persons,
-            motorbikes: result.criteria.household?.motorbikes,
-            cars: result.criteria.household?.cars,
-            prompt: text,
-          })
-          .catch(() => null);
-      }
-
+      // Attempt to contact Python AI Agent
       setThinking({
-        steps: isSearch
-          ? [`Quét ${openCount} căn đang mở tại Ocean Park 1`, budget ? `Loại căn có All-in vượt ${vndShort(budget)}` : "Áp dụng bộ lọc của bạn", "Xếp hạng theo mức tiết kiệm"]
-          : ["Đang tìm câu trả lời"],
+        steps: ["Đang kết nối với AI Agent", "Đang phân tích ý định", "Xếp hạng theo mức tiết kiệm"],
       });
 
-      setTimeout(
-        () => {
-          try {
-            if (result.kind === "search") {
-              chatSetSearch(result.criteria);
-              setFreshId(chatAppend({ role: "assistant", text: result.reply, resultIds: result.results.slice(0, 3).map((r) => r.unit.id), criteria: result.criteria }));
+      let sessionId = window.localStorage.getItem("vinstay_session_id");
+      if (!sessionId) {
+        sessionId = Math.random().toString(36).slice(2, 10);
+        window.localStorage.setItem("vinstay_session_id", sessionId);
+      }
+
+      try {
+        const res = await fetch("http://localhost:8000/api/v1/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, session_id: sessionId, budget_ceiling: chat.criteria.budget, motorbikes: chat.criteria.household?.motorbikes, cars: chat.criteria.household?.cars, occupants: chat.criteria.household?.persons }),
+        });
+        
+        if (res.ok) {
+           const data = await res.json();
+           const hasUnits = data.matched_units && data.matched_units.length > 0;
+           
+           if (hasUnits) {
+              // Map AI matched units back to our UI logic if needed, but the AI returns IDs
+              chatSetSearch({ ...chat.criteria, ...data.criteria });
+              setFreshId(chatAppend({ role: "assistant", text: data.response, resultIds: data.matched_units.map((u: any) => u.unit_code || u.id).slice(0, 3) }));
               setTab("results");
-            } else {
-              setFreshId(chatAppend({ role: "assistant", text: result.reply }));
-            }
-          } catch (err) {
-            console.error("Chat response error:", err);
-          } finally {
-            setThinking(null);
-            busy.current = false;
-          }
-        },
-        isSearch ? 1200 : 700,
-      );
+           } else {
+              setFreshId(chatAppend({ role: "assistant", text: data.response }));
+           }
+        } else {
+           throw new Error("Backend error");
+        }
+      } catch (err) {
+        console.error("AI API Error, falling back to mock:", err);
+        // Fallback to local mock if Python is down
+        const result = interpret(text, chat.criteria, chat.searched, statusOf);
+        const isSearch = result.kind === "search";
+        if (isSearch) {
+          chatSetSearch(result.criteria);
+          setFreshId(chatAppend({ role: "assistant", text: result.reply, resultIds: result.results.slice(0, 3).map((r) => r.unit.id), criteria: result.criteria }));
+          setTab("results");
+        } else {
+          setFreshId(chatAppend({ role: "assistant", text: result.reply }));
+        }
+      }
     } catch (err) {
       console.error("Chat send error:", err);
-      busy.current = false;
+    } finally {
       setThinking(null);
+      busy.current = false;
     }
   };
 

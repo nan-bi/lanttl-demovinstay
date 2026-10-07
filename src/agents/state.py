@@ -1,4 +1,5 @@
-from typing import Any, TypedDict
+from typing import Any, TypedDict, Annotated
+from langgraph.graph.message import AnyMessage, add_messages
 
 
 class SearchCriteria(TypedDict, total=False):
@@ -35,6 +36,7 @@ class MatchedUnit(TypedDict, total=False):
 class AgentState(TypedDict, total=False):
     query: str
     chat_history: list[dict[str, str]]
+    messages: Annotated[list[AnyMessage], add_messages]
     intent: str  # "search_unit" | "all_in_calc" | "policy_faq" | "greeting" | "fallback"
     criteria: SearchCriteria
     matched_units: list[MatchedUnit]

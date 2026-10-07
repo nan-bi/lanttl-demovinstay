@@ -21,7 +21,7 @@ def route_intent(state: AgentState) -> str:
     return "matchmaker"
 
 
-def build_graph():
+def build_graph(checkpointer=None):
     graph = StateGraph(AgentState)
 
     # 1. Thêm các Node nghiệp vụ
@@ -35,7 +35,6 @@ def build_graph():
     graph.add_edge("matchmaker", "respond")
     graph.add_edge("respond", END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
 
 
-agent = build_graph()

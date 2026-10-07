@@ -1,13 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
-from src.agents.graph import agent
 from src.models.schemas import ChatRequest, ChatResponse
 
 router = APIRouter()
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
+async def chat(request: ChatRequest, fastapi_req: Request) -> ChatResponse:
     """Tương tác bằng ngôn ngữ tự nhiên với VinStay AI Matchmaker Agent."""
     try:
         initial_criteria = {}
@@ -23,8 +22,14 @@ async def chat(request: ChatRequest) -> ChatResponse:
         state_input = {
             "query": request.message,
             "criteria": initial_criteria,
+            # In MessagesAnnotation, you can also append to messages if needed
+            # "messages": [("user", request.message)]
         }
-        result = await agent.ainvoke(state_input)
+        
+        agent = fastapi_req.app.state.agent
+        config = {"configurable": {"thread_id": request.session_id}}
+        
+        result = await agent.ainvoke(state_input, config)
         return ChatResponse(
             response=result.get("response", ""),
             analysis=result.get("analysis", ""),

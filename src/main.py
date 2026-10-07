@@ -5,14 +5,49 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes import router
 from src.config import get_settings
+from src.agents.graph import build_graph
+import os
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    print(f"🚀 Starting {settings.app_name} at Vinhomes Ocean Park in {settings.app_env} mode")
-    yield
-    print("🛑 Shutting down VinStay AI Agent...")
+    print(f"Starting {settings.app_name} at Vinhomes Ocean Park in {settings.app_env} mode")
+    
+    db_url = settings.database_url
+    if db_url and db_url.startswith("postgres"):
+        from psycopg_pool import AsyncConnectionPool
+        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+        
+        # Remove prisma-specific query params
+        clean_db_url = db_url.split("?")[0]
+        
+        # Supabase transaction pooler requires pgbouncer/etc., but psycopg can connect simply.
+        pool = AsyncConnectionPool(
+            conninfo=clean_db_url,
+            min_size=1,
+            max_size=2,
+            kwargs={
+                "autocommit": True,
+                "prepare_threshold": 0,
+            }
+        )
+        await pool.open()
+        
+        checkpointer = AsyncPostgresSaver(pool)
+        await checkpointer.setup()
+        
+        app.state.agent = build_graph(checkpointer=checkpointer)
+        app.state.db_pool = pool
+        yield
+        
+        print("Shutting down database pool...")
+        await pool.close()
+    else:
+        app.state.agent = build_graph()
+        yield
+
+    print("Shutting down VinStay AI Agent...")
 
 
 app = FastAPI(

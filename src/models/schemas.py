@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000, description="Tin nhắn hoặc yêu cầu tìm phòng")
+    session_id: str = Field(default="default_session", description="Session ID để lưu lịch sử chat")
     budget_ceiling: float | None = Field(default=None, description="Ngân sách trần All-in Cost nếu nhập riêng")
     motorbikes: int | None = Field(default=1, description="Số lượng xe máy")
     cars: int | None = Field(default=0, description="Số lượng ô tô")
