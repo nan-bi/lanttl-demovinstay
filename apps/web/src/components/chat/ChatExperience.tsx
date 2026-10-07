@@ -158,7 +158,8 @@ export function ChatExperience({ below }: { below: ReactNode }) {
       }
 
       try {
-        const res = await fetch("http://localhost:8000/api/v1/chat", {
+        const aiApiUrl = process.env.NEXT_PUBLIC_AI_API_URL || "https://lanttl-demovinstay.onrender.com";
+        const res = await fetch(`${aiApiUrl}/api/v1/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: text, session_id: sessionId, budget_ceiling: chat.criteria.budget, motorbikes: chat.criteria.household?.motorbikes, cars: chat.criteria.household?.cars, occupants: chat.criteria.household?.persons }),
