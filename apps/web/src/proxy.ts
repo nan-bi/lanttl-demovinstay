@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { parseSetCookie } from "@/lib/auth/setCookie";
 import { PORTAL_HOME, loginPathFor, portalForPath, type Portal, type SessionUser } from "@/lib/auth/portals";
 
-const BACKEND_URL = (process.env.BACKEND_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+const BACKEND_URL = (process.env.BACKEND_URL ?? "https://lanttl-demovinstay.onrender.com").replace(/\/+$/, "");
 
 /** Cổng cần đăng nhập để vào một đường dẫn; null = công khai. `/account`, `/booking` là khu của Khách thuê. */
 function requiredPortal(pathname: string): Portal | null {

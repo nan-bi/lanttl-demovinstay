@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import type { SessionUser } from "./portals";
 
-export const backendUrl = () => (process.env.BACKEND_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+export const backendUrl = () => (process.env.BACKEND_URL ?? "https://lanttl-demovinstay.onrender.com").replace(/\/+$/, "");
 
 /** Người dùng hiện tại cho Server Component (proxy.ts đã chặn người chưa đăng nhập; đây chỉ để hiển thị). */
 export async function getSessionUser(): Promise<SessionUser | null> {
